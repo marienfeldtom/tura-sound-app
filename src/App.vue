@@ -44,8 +44,8 @@
             <span class="tabbar-label">Update</span>
           </f7-link>
 
-          <f7-link v-if="currentFile" class="bg-color-red">
-            <f7-button @click="stop()" id="stop" class="bg-color-red" round>
+          <f7-link v-if="currentFile" @click="stop()" class="bg-color-red">
+            <f7-button id="stop" class="bg-color-red" round>
               <f7-icon style="line-height:35px" material="stop" class="color-white"></f7-icon>
             </f7-button>
           </f7-link>
@@ -83,7 +83,12 @@
             </f7-block>
 
             <f7-block>
-              <f7-button large fill @click="checkForUpdates">Auf Updates prüfen</f7-button>
+              <f7-button large fill color="blue" @click="checkForUpdates">Auf Updates prüfen</f7-button>
+            </f7-block>
+
+            <f7-block>
+              <f7-block-title v-if="updates.length>0">Probleme mit der App?</f7-block-title>Bitte nicht während des Spiels drücken.
+              <f7-button fill color="red" large @click="resetApp">RESET</f7-button>
             </f7-block>
           </f7-tab>
         </f7-tabs>
@@ -110,17 +115,16 @@ export default {
       updates: [],
       herren: [],
       spieler: [],
-      damen: []
+      damen: [],
+      timer: "",
+      timerDur: "",
+      timeout: "",
+      thevolume: 1
     };
   },
   created() {
     this.getSpieler();
     window.plugins.insomnia.keepAwake();
-    /*
-    db.get('spieler')
-  .remove({ username: "tommarienfeld" })
-  .write()
-    */
     this.checkForUpdates();
   },
   mounted() {
@@ -143,8 +147,15 @@ export default {
     }
   },
   methods: {
+    resetApp: function() {
+      db.set("spieler", []).write();
+      this.spieler = [];
+      this.herren = [];
+      this.damen = [];
+      this.getSpieler();
+      this.checkForUpdates();
+    },
     getSpieler: function() {
-      console.log("NEULADEN");
       db.defaults({ spieler: [] }).write();
       this.herren = [];
       this.damen = [];
@@ -158,8 +169,8 @@ export default {
         }
       });
     },
-    play(name) {
-      this.stop();
+    play: async function(name) {
+      await this.stop();
       var fileDeviceDir = cordova.file.dataDirectory;
       this.currentFile = new Media(
         fileDeviceDir + name + ".mp3",
@@ -172,27 +183,24 @@ export default {
         function(err) {
           console.log("playAudio():Audio Error: " + JSON.stringify(err));
         },
-        function(status) {
+        (status) => {
           console.log(status);
         }
       );
       this.currentFile.play();
-      console.log("LENGTH" + this.currentFile.getDuration());
-      console.log("DURATION" + this.currentFile.getDuration() * 0.7 * 1000);
       //Start Fadeout after 70% Playtime
       var counter = 0;
       var self = this;
-      var timerDur = setInterval(function() {
+      this.timerDur = setInterval(function() {
         counter = counter + 100;
         if (counter > 2000) {
-          clearInterval(timerDur);
+          clearInterval(self.timerDur);
         }
         var dur = self.currentFile.getDuration();
         if (dur > 0) {
-          clearInterval(timerDur);
-          setTimeout(() => {
+          clearInterval(self.timerDur);
+         self.timeout = setTimeout(() => {
             self.fadeOut();
-            console.log("Fading out 1");
           }, self.currentFile.getDuration() * 0.7 * 1000);
         }
       }, 100);
@@ -200,18 +208,16 @@ export default {
     fadeOut() {
       if (this.currentFile) {
         var fadeseconds = this.currentFile.getDuration() * 0.3;
-        console.log("Fading out 2");
-        var thevolume = 1;
+        this.thevolume = 1;
         var fadeStep = 1 / (fadeseconds * 10);
         var self = this;
-        var timer = setInterval(() => {
-          if (thevolume > 0 && self.currentFile != null) {
-            console.log(thevolume);
-            thevolume = thevolume - fadeStep;
-            self.currentFile.setVolume(thevolume); // media is your audio object
+        this.timer = setInterval(() => {
+          if (self.thevolume > 0 && self.currentFile != null) {
+            console.log(self.thevolume);
+            self.thevolume = self.thevolume - fadeStep;
+            self.currentFile.setVolume(self.thevolume); // media is your audio object
           } else {
-            console.log("CLEAR");
-            clearInterval(timer);
+            clearInterval(self.timer);
           }
         }, 100);
       }
@@ -219,13 +225,17 @@ export default {
     stop() {
       if (this.currentFile) {
         this.currentFile.stop();
+        this.currentFile.release();
+        this.thevolume = 1;
       }
+      clearInterval(this.timerDur);
+      clearInterval(this.timer);
+      clearTimeout(this.timeout);
     },
     checkForUpdates: function() {
       this.updates = [];
-      axios.get("https://beugelbuddel.de/sound/info").then(response => {
+      axios.get("https://beugelbuddel.de/sound/info/").then(response => {
         var count = 0;
-        console.log("test");
         response.data.forEach(spieler => {
           if (
             db
@@ -298,7 +308,6 @@ export default {
         this.downloadFail,
         true
       );
-      console.log(spieler.username);
       this.count--;
     },
     downloadFail: function(error) {
