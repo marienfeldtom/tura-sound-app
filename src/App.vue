@@ -1073,41 +1073,47 @@ export default {
     async downloadSingleFile(spieler) {
       const soundUrl = `${this.baseUrl}/uploads/${spieler.username}.mp3`;
 
-      // If running on Cordova with FileTransfer
-      const hasFileTransfer =
-        typeof window.FileTransfer !== "undefined" &&
-        typeof window.cordova !== "undefined" &&
-        typeof cordova.file !== "undefined";
+      // If running on Cordova with cordova.file
+      const isCordova = typeof window.cordova !== "undefined" && typeof cordova.file !== "undefined";
 
-      if (hasFileTransfer) {
-        return new Promise((resolve) => {
-          const fileTransfer = new window.FileTransfer();
-          const targetPath = cordova.file.dataDirectory + spieler.username + ".mp3";
-          const uri = encodeURI(soundUrl);
+      if (isCordova) {
+        try {
+          if (typeof window.FileTransfer !== "undefined") {
+            await new Promise((resolve, reject) => {
+              const fileTransfer = new window.FileTransfer();
+              const targetPath = cordova.file.dataDirectory + spieler.username + ".mp3";
+              fileTransfer.download(encodeURI(soundUrl), targetPath, resolve, reject, true);
+            });
+          } else {
+            // Modern Cordova: Fetch MP3 blob and save using cordova-plugin-file
+            const response = await fetch(soundUrl);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const blob = await response.blob();
 
-          fileTransfer.download(
-            uri,
-            targetPath,
-            () => {
-              // Update local version in db and activate player on Soundboard
-              const currentPlayers = db.get("players").value() || [];
-              const index = currentPlayers.findIndex((p) => p.username === spieler.username);
-              if (index >= 0) {
-                currentPlayers[index] = { ...currentPlayers[index], ...spieler, version: spieler.version, isDownloaded: true };
-              } else {
-                currentPlayers.push({ ...spieler, version: spieler.version, isDownloaded: true });
-              }
-              db.set("players", currentPlayers).write();
-              this.players = currentPlayers;
-              resolve(true);
-            },
-            (error) => {
-              console.warn("Cordova FileTransfer Download Error:", error);
-              resolve(false);
-            },
-            true
-          );
-        });
+            await new Promise((resolve, reject) => {
+              window.resolveLocalFileSystemURL(
+                cordova.file.dataDirectory,
+                (dirEntry) => {
+                  dirEntry.getFile(
+                    spieler.username + ".mp3",
+                    { create: true, exclusive: false },
+                    (fileEntry) => {
+                      fileEntry.createWriter((fileWriter) => {
+                        fileWriter.onwriteend = () => resolve(true);
+                        fileWriter.onerror = (e) => reject(e);
+                        fileWriter.write(blob);
+                      }, reject);
+                    },
+                    reject
+                  );
+                },
+                reject
+              );
+            });
+          }
+        } catch (error) {
+          console.warn("Cordova File Download Error:", error);
+        }
       } else {
         // Browser environment: pre-fetch / cache in browser or mark updated
         try {
@@ -1120,18 +1126,19 @@ export default {
         } catch (e) {
           console.warn("Browser download pre-fetch simulated:", e);
         }
-
-        const currentPlayers = db.get("players").value() || [];
-        const index = currentPlayers.findIndex((p) => p.username === spieler.username);
-        if (index >= 0) {
-          currentPlayers[index] = { ...currentPlayers[index], ...spieler, version: spieler.version, isDownloaded: true };
-        } else {
-          currentPlayers.push({ ...spieler, version: spieler.version, isDownloaded: true });
-        }
-        db.set("players", currentPlayers).write();
-        this.players = currentPlayers;
-        return true;
       }
+
+      // Update local version in db and activate player on Soundboard
+      const currentPlayers = db.get("players").value() || [];
+      const index = currentPlayers.findIndex((p) => p.username === spieler.username);
+      if (index >= 0) {
+        currentPlayers[index] = { ...currentPlayers[index], ...spieler, version: spieler.version, isDownloaded: true };
+      } else {
+        currentPlayers.push({ ...spieler, version: spieler.version, isDownloaded: true });
+      }
+      db.set("players", currentPlayers).write();
+      this.players = currentPlayers;
+      return true;
     },
 
     confirmResetApp() {

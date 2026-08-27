@@ -2,6 +2,7 @@
   "name": "tura-sound-app",
   "version": "0.1.0",
   "private": true,
+  "author": "Tom Marienfeld <marienfeldtom@googlemail.com>",
   "type": "module",
   "scripts": {
     "dev": "vite",
