@@ -503,9 +503,10 @@ export default {
       activeTab: "tab-team-0",
       players: [],
 
-      // Audio Playback Engine (7-Second UX)
+      // Audio Playback Engine (Full Length Playback)
       playingSpieler: null,
-      playingSecondsRemaining: 7.0,
+      playingDuration: 0,
+      playingSecondsRemaining: 0.0,
       playingProgressPercent: 100,
       audioCountdownTimer: null,
       audioProgressTimer: null,
@@ -833,7 +834,7 @@ export default {
     },
 
     // -------------------------------------------------------------
-    // 7-SECS SOUNDBOARD AUDIO ENGINE
+    // SOUNDBOARD AUDIO ENGINE (FULL LENGTH PLAYBACK)
     // -------------------------------------------------------------
     isSpielerPlaying(spieler) {
       return this.playingSpieler && this.playingSpieler.id === spieler.id;
@@ -854,7 +855,8 @@ export default {
       await this.stopSound();
 
       this.playingSpieler = spieler;
-      this.playingSecondsRemaining = 7.0;
+      this.playingDuration = 0;
+      this.playingSecondsRemaining = 0.0;
       this.playingProgressPercent = 100;
 
       // Haptic feedback if available
@@ -876,33 +878,46 @@ export default {
         this.playHtmlAudio(spieler, soundUrl);
       }
 
-      // Start 7-second countdown and smooth progress animation
-      this.start7SecCountdown();
+      // Start progress timer to update remaining time and progress bar smoothly
+      this.startPlaybackProgressTimer();
     },
 
     playCordovaAudio(spieler, fallbackUrl) {
       const localFilePath = cordova.file.dataDirectory + spieler.username + ".mp3";
-
-      // We attempt to play local cached file or fallback to streaming URL
       const audioSource = localFilePath || fallbackUrl;
 
       try {
-        this.currentMedia = new window.Media(
-          audioSource,
-          () => {
-            console.log("Cordova Audio Success / Completed");
-          },
-          (err) => {
-            console.warn("Cordova Audio Error with local file, trying stream:", err);
-            // Fallback to direct HTTP stream if local file fails
-            if (audioSource !== fallbackUrl) {
-              this.currentMedia = new window.Media(fallbackUrl, () => {}, (err2) => {
-                console.error("Cordova Stream Audio Error:", err2);
-              });
+        const onMediaSuccess = () => {
+          console.log("Cordova Audio playback completed");
+          this.stopSound();
+        };
+
+        const onMediaError = (err) => {
+          console.warn("Cordova Audio Error with file, trying fallback stream:", err);
+          if (audioSource !== fallbackUrl) {
+            try {
+              this.currentMedia = new window.Media(
+                fallbackUrl,
+                () => {
+                  console.log("Cordova Fallback Stream completed");
+                  this.stopSound();
+                },
+                (err2) => {
+                  console.error("Cordova Stream Audio Error:", err2);
+                  this.stopSound();
+                }
+              );
               this.currentMedia.play();
+            } catch (e) {
+              console.error("Cordova stream fallback failed:", e);
+              this.stopSound();
             }
+          } else {
+            this.stopSound();
           }
-        );
+        };
+
+        this.currentMedia = new window.Media(audioSource, onMediaSuccess, onMediaError);
         this.currentMedia.play();
       } catch (e) {
         console.warn("Cordova media init failed, falling back to HTML5 audio:", e);
@@ -917,33 +932,102 @@ export default {
           this.htmlAudio = null;
         }
 
-        this.htmlAudio = new Audio(soundUrl);
+        const audio = new Audio(soundUrl);
+        this.htmlAudio = audio;
         this.htmlAudio.currentTime = 0;
-        this.htmlAudio.play().catch((err) => {
+
+        audio.addEventListener("loadedmetadata", () => {
+          if (this.htmlAudio === audio && audio.duration && isFinite(audio.duration) && audio.duration > 0) {
+            this.playingDuration = audio.duration;
+            this.playingSecondsRemaining = Math.max(0, audio.duration - audio.currentTime);
+          }
+        });
+
+        audio.addEventListener("ended", () => {
+          if (this.htmlAudio === audio) {
+            this.stopSound();
+          }
+        });
+
+        audio.addEventListener("error", (err) => {
+          console.error("HTML5 Audio playback error:", err);
+          if (this.htmlAudio === audio) {
+            this.stopSound();
+          }
+        });
+
+        audio.play().catch((err) => {
           console.error("HTML5 Audio play failed:", err);
+          if (this.htmlAudio === audio) {
+            this.stopSound();
+          }
         });
       } catch (e) {
         console.error("Audio error:", e);
+        this.stopSound();
       }
     },
 
-    start7SecCountdown() {
-      const TOTAL_DURATION_MS = 7000;
+    startPlaybackProgressTimer() {
       const INTERVAL_MS = 50;
       const startTime = Date.now();
 
-      // Progress and remaining seconds interval
       this.audioProgressTimer = setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        const remainingMs = Math.max(0, TOTAL_DURATION_MS - elapsed);
-
-        this.playingSecondsRemaining = remainingMs / 1000;
-        this.playingProgressPercent = (remainingMs / TOTAL_DURATION_MS) * 100;
-
-        // Auto-stop at 7.0 seconds
-        if (elapsed >= TOTAL_DURATION_MS) {
-          this.stopSound();
+        if (!this.playingSpieler) {
+          clearInterval(this.audioProgressTimer);
+          this.audioProgressTimer = null;
+          return;
         }
+
+        // 1. HTML5 Audio
+        if (this.htmlAudio) {
+          const audio = this.htmlAudio;
+          if (audio.duration && isFinite(audio.duration) && audio.duration > 0) {
+            this.playingDuration = audio.duration;
+            const remaining = Math.max(0, audio.duration - audio.currentTime);
+            this.playingSecondsRemaining = remaining;
+            this.playingProgressPercent = Math.max(0, Math.min(100, (remaining / audio.duration) * 100));
+          } else {
+            const elapsed = (Date.now() - startTime) / 1000;
+            this.playingSecondsRemaining = elapsed;
+            this.playingProgressPercent = 100;
+          }
+          return;
+        }
+
+        // 2. Cordova Media
+        if (this.currentMedia) {
+          const media = this.currentMedia;
+          try {
+            const dur = media.getDuration();
+            if (dur && dur > 0) {
+              this.playingDuration = dur;
+            }
+
+            media.getCurrentPosition((pos) => {
+              if (this.currentMedia !== media) return;
+              if (pos >= 0) {
+                if (this.playingDuration > 0) {
+                  const remaining = Math.max(0, this.playingDuration - pos);
+                  this.playingSecondsRemaining = remaining;
+                  this.playingProgressPercent = Math.max(0, Math.min(100, (remaining / this.playingDuration) * 100));
+                } else {
+                  this.playingSecondsRemaining = pos;
+                  this.playingProgressPercent = 100;
+                }
+              }
+            }, (err) => {
+              console.warn("Error getting Cordova media position:", err);
+            });
+          } catch (e) {
+            console.warn("Error in Cordova progress update:", e);
+          }
+          return;
+        }
+
+        // Fallback before audio is ready
+        const elapsed = (Date.now() - startTime) / 1000;
+        this.playingSecondsRemaining = elapsed;
       }, INTERVAL_MS);
     },
 
@@ -961,20 +1045,26 @@ export default {
       // Stop Cordova Media
       if (this.currentMedia) {
         try {
-          this.currentMedia.stop();
-          this.currentMedia.release();
+          const media = this.currentMedia;
+          this.currentMedia = null;
+          media.stop();
+          media.release();
         } catch (e) {
           console.warn("Error releasing Cordova media:", e);
         }
-        this.currentMedia = null;
       }
 
       // Stop HTML5 Audio
       if (this.htmlAudio) {
         try {
-          this.htmlAudio.pause();
-          this.htmlAudio.currentTime = 0;
+          const audio = this.htmlAudio;
           this.htmlAudio = null;
+          audio.pause();
+          audio.currentTime = 0;
+          audio.onended = null;
+          audio.onerror = null;
+          audio.ontimeupdate = null;
+          audio.onloadedmetadata = null;
         } catch (e) {
           console.warn("Error stopping HTML5 audio:", e);
         }
@@ -985,7 +1075,8 @@ export default {
       }
 
       this.playingSpieler = null;
-      this.playingSecondsRemaining = 7.0;
+      this.playingDuration = 0;
+      this.playingSecondsRemaining = 0.0;
       this.playingProgressPercent = 100;
     },
 
