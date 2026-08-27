@@ -488,11 +488,7 @@ import LocalStorage from "lowdb/adapters/LocalStorage";
 const adapter = new LocalStorage("db");
 const db = low(adapter);
 
-const isLocal =
-  import.meta.env.DEV ||
-  (typeof window !== "undefined" &&
-    (window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1"));
+const isLocal = !!import.meta.env.DEV;
 
 const DEFAULT_API_URL = isLocal
   ? "http://localhost:3000"
