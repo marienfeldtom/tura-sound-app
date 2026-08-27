@@ -43,6 +43,11 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Install Android Build Tools 33.0.2 & Accept Licenses
+        run: |
+          yes | sdkmanager --licenses || true
+          sdkmanager "platforms;android-33" "build-tools;33.0.2" "platform-tools"
+
       - name: Install Root Dependencies
         run: npm install
 
