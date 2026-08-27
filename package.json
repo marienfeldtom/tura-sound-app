@@ -2,63 +2,59 @@
   "name": "tura-sound-app",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint",
-    "cordova-build-android": "cross-env CORDOVA_PLATFORM=android vue-cli-service cordova-build-android",
-    "cordova-build-browser": "cross-env CORDOVA_PLATFORM=browser vue-cli-service cordova-build-browser",
-    "cordova-build-ios": "cross-env CORDOVA_PLATFORM=ios vue-cli-service cordova-build-ios",
-    "cordova-build-only-www-android": "cross-env CORDOVA_PLATFORM=android vue-cli-service cordova-build-only-www-android",
-    "cordova-build-only-www-browser": "cross-env CORDOVA_PLATFORM=browser vue-cli-service cordova-build-only-www-browser",
-    "cordova-build-only-www-ios": "cross-env CORDOVA_PLATFORM=ios vue-cli-service cordova-build-only-www-ios",
-    "cordova-build-only-www-osx": "cross-env CORDOVA_PLATFORM=osx vue-cli-service cordova-build-only-www-osx",
-    "cordova-build-osx": "cross-env CORDOVA_PLATFORM=osx vue-cli-service cordova-build-osx",
-    "cordova-prepare": "vue-cli-service cordova-prepare",
-    "cordova-serve-android": "cross-env CORDOVA_PLATFORM=android vue-cli-service cordova-serve-android",
-    "cordova-serve-browser": "cross-env CORDOVA_PLATFORM=browser vue-cli-service cordova-serve-browser",
-    "cordova-serve-ios": "cross-env CORDOVA_PLATFORM=ios vue-cli-service cordova-serve-ios",
-    "cordova-serve-osx": "cross-env CORDOVA_PLATFORM=osx vue-cli-service cordova-serve-osx"
+    "dev": "vite",
+    "serve": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint --ext .js,.vue src",
+    "cordova-build-android": "vite build --outDir src-cordova/www && cd src-cordova && cordova build android",
+    "cordova-build-browser": "vite build --outDir src-cordova/www && cd src-cordova && cordova build browser",
+    "cordova-build-ios": "vite build --outDir src-cordova/www && cd src-cordova && cordova build ios",
+    "cordova-build-only-www-android": "vite build --outDir src-cordova/www",
+    "cordova-build-only-www-browser": "vite build --outDir src-cordova/www",
+    "cordova-build-only-www-ios": "vite build --outDir src-cordova/www",
+    "cordova-build-only-www-osx": "vite build --outDir src-cordova/www",
+    "cordova-build-osx": "vite build --outDir src-cordova/www && cd src-cordova && cordova build osx",
+    "cordova-prepare": "vite build --outDir src-cordova/www && cd src-cordova && cordova prepare",
+    "cordova-serve-android": "cd src-cordova && cordova run android",
+    "cordova-serve-browser": "cd src-cordova && cordova run browser",
+    "cordova-serve-ios": "cd src-cordova && cordova run ios",
+    "cordova-serve-osx": "cd src-cordova && cordova run osx"
   },
   "dependencies": {
-    "axios": "^0.19.0",
-    "core-js": "^2.6.5",
+    "axios": "^1.7.9",
+    "core-js": "^3.39.0",
     "framework7": "^4.4.10",
     "framework7-vue": "^4.4.10",
     "lowdb": "^1.0.0",
-    "vue": "^2.6.10"
+    "vue": "^2.7.16"
   },
   "devDependencies": {
-    "@vue/cli-plugin-babel": "^3.9.0",
-    "@vue/cli-plugin-eslint": "^3.9.0",
-    "@vue/cli-service": "^3.9.0",
-    "babel-eslint": "^10.0.1",
-    "eslint": "^5.16.0",
-    "eslint-plugin-vue": "^5.0.0",
-    "vue-cli-plugin-cordova": "^2.3.6",
-    "vue-template-compiler": "^2.6.10"
+    "@vitejs/plugin-vue2": "^2.3.3",
+    "eslint": "^8.57.1",
+    "eslint-plugin-vue": "^9.28.0",
+    "vite": "^5.4.14"
   },
   "eslintConfig": {
     "root": true,
     "env": {
-      "node": true
+      "browser": true,
+      "node": true,
+      "es2021": true
+    },
+    "globals": {
+      "cordova": "readonly"
     },
     "extends": [
-      "plugin:vue/essential",
-      "eslint:recommended"
+      "eslint:recommended",
+      "plugin:vue/essential"
     ],
-    "rules": {},
     "parserOptions": {
-      "parser": "babel-eslint"
-    }
-  },
-  "postcss": {
-    "plugins": {
-      "autoprefixer": {}
-    }
-  },
-  "browserslist": [
-    "> 1%",
-    "last 2 versions"
-  ]
+      "ecmaVersion": "latest",
+      "sourceType": "module"
+    },
+    "rules": {}
+  }
 }
