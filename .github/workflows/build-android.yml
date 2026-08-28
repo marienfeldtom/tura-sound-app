@@ -44,6 +44,24 @@ jobs:
         with:
           gradle-version: '8.7'
 
+      - name: Configure Gradle Maven Mirrors
+        run: |
+          mkdir -p ~/.gradle
+          cat << 'EOF' > ~/.gradle/init.gradle
+          allprojects {
+              buildscript {
+                  repositories {
+                      google()
+                      maven { url 'https://repo1.maven.org/maven2' }
+                  }
+              }
+              repositories {
+                  google()
+                  maven { url 'https://repo1.maven.org/maven2' }
+              }
+          }
+          EOF
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
