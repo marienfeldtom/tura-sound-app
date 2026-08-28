@@ -1,11 +1,9 @@
 <template>
   <f7-app>
-    <f7-statusbar />
-
     <f7-view main>
       <f7-page :page-content="false" class="app-page">
         <!-- HEADER / NAVBAR (Sporty, High-Contrast Clean Design System) -->
-        <f7-navbar class="app-navbar" no-shadow>
+        <header class="app-header app-navbar">
           <div class="navbar-inner-custom">
             <!-- Brand & App Identity -->
             <div class="navbar-brand-section">
@@ -46,7 +44,7 @@
               </div>
             </div>
           </div>
-        </f7-navbar>
+        </header>
 
         <!-- BOTTOM TOOLBAR / TABBAR (Max 3 Teams + Manage Tab) -->
         <f7-toolbar tabbar bottom class="app-toolbar">
@@ -1306,27 +1304,39 @@ body, html, #app {
 /* ==========================================================================
    NAVBAR & HEADER (APP_DESIGN_SYSTEM.md Specification)
    ========================================================================== */
+.statusbar {
+  display: none !important;
+}
+
 .app-navbar {
+  display: block !important;
   background-color: var(--color-surface) !important;
   color: var(--color-text-primary) !important;
   border-bottom: 1.5px solid var(--color-border) !important;
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04) !important;
   height: calc(56px + env(safe-area-inset-top, 0px)) !important;
+  min-height: 56px !important;
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
   right: 0 !important;
-  z-index: 600 !important;
+  width: 100% !important;
+  z-index: 9999 !important;
+  box-sizing: border-box !important;
 }
 
 .navbar-inner-custom {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: env(safe-area-inset-top, 0px) 16px 0 16px;
-  height: 56px;
-  box-sizing: border-box;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  padding-top: env(safe-area-inset-top, 0px) !important;
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+  padding-bottom: 0 !important;
+  height: 100% !important;
+  min-height: 56px !important;
+  box-sizing: border-box !important;
 }
 
 .navbar-brand-section {
