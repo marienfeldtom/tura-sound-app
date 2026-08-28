@@ -18,6 +18,10 @@ jobs:
 
     env:
       CORDOVA_ANDROID_GRADLE_DISTRIBUTION_URL: 'https://services.gradle.org/distributions/gradle-8.7-bin.zip'
+      KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
     steps:
       - name: Checkout Repository
@@ -66,12 +70,7 @@ jobs:
           cordova build android --debug
 
       - name: Build Android Release Bundle (.aab)
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        if: env.KEYSTORE_BASE64 != ''
         working-directory: src-cordova
         run: |
           echo "$KEYSTORE_BASE64" | base64 --decode > release.keystore
@@ -99,7 +98,7 @@ jobs:
           retention-days: 30
 
       - name: Upload Release AAB Artifact (Play Store)
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        if: env.KEYSTORE_BASE64 != ''
         uses: actions/upload-artifact@v4
         with:
           name: 7secs-sound-app-release-aab
