@@ -11,6 +11,8 @@
     "preview": "vite preview",
     "lint": "eslint --ext .js,.vue src",
     "cordova-build-android": "vite build --outDir src-cordova/www && cd src-cordova && cordova build android",
+    "cordova-build-android-release": "vite build --outDir src-cordova/www && cd src-cordova && cordova build android --release -- --packageType=bundle",
+    "cordova-build-android-apk": "vite build --outDir src-cordova/www && cd src-cordova && cordova build android --release -- --packageType=apk",
     "cordova-build-browser": "vite build --outDir src-cordova/www && cd src-cordova && cordova build browser",
     "cordova-build-ios": "vite build --outDir src-cordova/www && cd src-cordova && cordova build ios",
     "cordova-build-only-www-android": "vite build --outDir src-cordova/www",

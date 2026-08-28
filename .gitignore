@@ -24,8 +24,11 @@ yarn-error.log*
 /src-cordova/platforms
 /src-cordova/plugins
 /public/cordova.js
+/src-cordova/build.json
 
-# Cordova
-/src-cordova/platforms
-/src-cordova/plugins
-/public/cordova.js
+# Keystores & Certificates (Do not commit to git)
+*.keystore
+*.jks
+*.p12
+*.pem
+

@@ -43,10 +43,10 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install Android Build Tools 33.0.2 & Accept Licenses
+      - name: Install Android Build Tools 34.0.0 & Accept Licenses
         run: |
           yes | sdkmanager --licenses || true
-          sdkmanager "platforms;android-33" "build-tools;33.0.2" "platform-tools"
+          sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools"
 
       - name: Install Root Dependencies
         run: npm install
@@ -57,7 +57,7 @@ jobs:
       - name: Install Cordova CLI
         run: npm install -g cordova@12.0.0
 
-      - name: Build Android APK
+      - name: Build Android Debug APK
         working-directory: src-cordova
         run: |
           npm install
@@ -65,10 +65,44 @@ jobs:
           cordova platform add android@12.0.1 --save
           cordova build android --debug
 
-      - name: Upload APK Artifact
+      - name: Build Android Release Bundle (.aab)
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        working-directory: src-cordova
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > release.keystore
+          cat <<EOF > build.json
+          {
+            "android": {
+              "release": {
+                "keystore": "release.keystore",
+                "storePassword": "$KEYSTORE_PASSWORD",
+                "alias": "$KEY_ALIAS",
+                "password": "$KEY_PASSWORD",
+                "keystoreType": ""
+              }
+            }
+          }
+          EOF
+          cordova build android --release -- --packageType=bundle
+
+      - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: 7secs-sound-app-debug-apk
           path: src-cordova/platforms/android/app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Upload Release AAB Artifact (Play Store)
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: 7secs-sound-app-release-aab
+          path: src-cordova/platforms/android/app/build/outputs/bundle/release/*.aab
+          if-no-files-found: ignore
           retention-days: 30

@@ -1,0 +1,11 @@
+{
+  "android": {
+    "release": {
+      "keystore": "release.keystore",
+      "storePassword": "DEIN_KEYSTORE_PASSWORT",
+      "alias": "DEIN_KEY_ALIAS",
+      "password": "DEIN_KEY_PASSWORT",
+      "keystoreType": ""
+    }
+  }
+}
