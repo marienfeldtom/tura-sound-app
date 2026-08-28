@@ -1,146 +1,142 @@
 <template>
-  <f7-app>
-    <f7-view main>
-      <f7-page :page-content="false" class="app-page">
-        <!-- HEADER / NAVBAR (Sporty, High-Contrast Clean Design System) -->
-        <header class="app-header app-navbar">
-          <div class="navbar-inner-custom">
-            <!-- Brand & App Identity -->
-            <div class="navbar-brand-section">
-              <div class="navbar-logo-icon">
-                <i class="material-icons">sports_handball</i>
-              </div>
-              <div class="navbar-title-wrap">
-                <span class="navbar-title">7secs</span>
-                <span class="navbar-subtitle" v-if="currentActiveTeam">{{ currentActiveTeam.name }}</span>
-                <span class="navbar-subtitle" v-else-if="activeTab === 'tab-manage'">Verwaltung</span>
-                <span class="navbar-subtitle" v-else>Soundboard</span>
-              </div>
-            </div>
+  <div class="app-root">
+    <!-- HEADER / NAVBAR (Sporty, High-Contrast Clean Design System) -->
+    <header class="app-header app-navbar">
+      <div class="navbar-inner-custom">
+        <!-- Brand & App Identity -->
+        <div class="navbar-brand-section">
+          <div class="navbar-logo-icon">
+            <i class="material-icons">sports_handball</i>
+          </div>
+          <div class="navbar-title-wrap">
+            <span class="navbar-title">7secs</span>
+            <span class="navbar-subtitle" v-if="currentActiveTeam">{{ currentActiveTeam.name }}</span>
+            <span class="navbar-subtitle" v-else-if="activeTab === 'tab-manage'">Verwaltung</span>
+            <span class="navbar-subtitle" v-else>Soundboard</span>
+          </div>
+        </div>
 
-            <!-- Navbar Right Actions / Active Indicators -->
-            <div class="navbar-right-section">
-              <!-- When audio is playing: Live 7s countdown & animated waveform -->
-              <div v-if="playingSpieler" class="navbar-playing-pill">
-                <span class="live-pulse-dot"></span>
-                <span class="live-time-text">{{ playingSecondsRemaining.toFixed(1) }}s</span>
-                <div class="nav-waveform-bars">
-                  <div class="nav-bar"></div>
-                  <div class="nav-bar"></div>
-                  <div class="nav-bar"></div>
-                  <div class="nav-bar"></div>
-                </div>
-              </div>
-
-              <!-- Idle: Official Team ID Badge from Design System -->
-              <div v-else-if="currentActiveTeam" class="team-id-badge header-badge">
-                {{ currentActiveTeam.id }}
-              </div>
-
-              <!-- Idle on Manage tab -->
-              <div v-else-if="activeTab === 'tab-manage'" class="navbar-manage-badge">
-                <i class="material-icons">tune</i>
-                <span>Verwaltung</span>
-              </div>
+        <!-- Navbar Right Actions / Active Indicators -->
+        <div class="navbar-right-section">
+          <!-- When audio is playing: Live 7s countdown & animated waveform -->
+          <div v-if="playingSpieler" class="navbar-playing-pill">
+            <span class="live-pulse-dot"></span>
+            <span class="live-time-text">{{ playingSecondsRemaining.toFixed(1) }}s</span>
+            <div class="nav-waveform-bars">
+              <div class="nav-bar"></div>
+              <div class="nav-bar"></div>
+              <div class="nav-bar"></div>
+              <div class="nav-bar"></div>
             </div>
           </div>
-        </header>
 
-        <!-- BOTTOM TOOLBAR / TABBAR (Max 3 Teams + Manage Tab) -->
-        <f7-toolbar tabbar bottom class="app-toolbar">
-          <!-- Dynamic Team Tabs (Max 3) -->
-          <f7-link
-            v-for="(team, index) in teams"
-            :key="team.id"
-            :tab-link="`#tab-team-${index}`"
-            :tab-link-active="activeTab === `tab-team-${index}`"
-            @click="setActiveTab(`tab-team-${index}`)"
-            class="toolbar-tab-link"
-          >
-            <i class="material-icons">sports_handball</i>
-            <span class="tabbar-label">{{ team.name || team.id }}</span>
-          </f7-link>
+          <!-- Idle: Official Team ID Badge from Design System -->
+          <div v-else-if="currentActiveTeam" class="team-id-badge header-badge">
+            {{ currentActiveTeam.id }}
+          </div>
 
-          <!-- Manage / Updates / Add Team Tab -->
-          <f7-link
-            tab-link="#tab-manage"
-            :tab-link-active="activeTab === 'tab-manage'"
-            @click="setActiveTab('tab-manage')"
-            class="toolbar-tab-link"
-          >
-            <div class="tab-icon-wrapper">
-              <i class="material-icons">tune</i>
-              <!-- Red notification dot if updates are available -->
-              <span v-if="updateCount > 0" class="tab-update-dot"></span>
+          <!-- Idle on Manage tab -->
+          <div v-else-if="activeTab === 'tab-manage'" class="navbar-manage-badge">
+            <i class="material-icons">tune</i>
+            <span>Verwaltung</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- BOTTOM TOOLBAR / TABBAR (Max 3 Teams + Manage Tab) -->
+    <nav class="app-toolbar" aria-label="Tabs">
+      <!-- Dynamic Team Tabs (Max 3) -->
+      <button
+        v-for="(team, index) in teams"
+        :key="team.id"
+        type="button"
+        :class="['toolbar-tab-link', { 'tab-link-active': activeTab === `tab-team-${index}` }]"
+        @click="setActiveTab(`tab-team-${index}`)"
+      >
+        <i class="material-icons">sports_handball</i>
+        <span class="tabbar-label">{{ team.name || team.id }}</span>
+      </button>
+
+      <!-- Manage / Updates / Add Team Tab -->
+      <button
+        type="button"
+        :class="['toolbar-tab-link', { 'tab-link-active': activeTab === 'tab-manage' }]"
+        @click="setActiveTab('tab-manage')"
+      >
+        <div class="tab-icon-wrapper">
+          <i class="material-icons">tune</i>
+          <!-- Red notification dot if updates are available -->
+          <span v-if="updateCount > 0" class="tab-update-dot"></span>
+        </div>
+        <span class="tabbar-label">Teams &amp; Updates</span>
+      </button>
+    </nav>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="app-main-content">
+      <!-- NO TEAMS ONBOARDING STATE (If 0 teams configured) -->
+      <div
+        v-if="teams.length === 0"
+        v-show="activeTab === 'tab-onboarding' || teams.length === 0"
+        id="tab-onboarding"
+        class="tab-pane"
+      >
+        <div class="onboarding-container">
+          <div class="onboarding-card">
+            <div class="onboarding-icon-box">
+              <i class="material-icons onboarding-icon">queue_music</i>
             </div>
-            <span class="tabbar-label">Teams &amp; Updates</span>
-          </f7-link>
-        </f7-toolbar>
+            <h1 class="onboarding-title">7secs Soundboard</h1>
+            <p class="onboarding-subtitle">
+              Willkommen! Gib deine 3-stellige Mannschafts-ID ein (z. B. <strong>#H4R</strong>), um deinen Spieltagskader und Torsongs zu laden.
+            </p>
 
-        <!-- MAIN TABS CONTAINER -->
-        <f7-tabs class="app-tabs">
-          <!-- NO TEAMS ONBOARDING STATE (If 0 teams configured) -->
-          <f7-tab
-            v-if="teams.length === 0"
-            id="tab-onboarding"
-            class="page-content tab-content-padded"
-            tab-active
-          >
-            <div class="onboarding-container">
-              <div class="onboarding-card">
-                <div class="onboarding-icon-box">
-                  <i class="material-icons onboarding-icon">queue_music</i>
-                </div>
-                <h1 class="onboarding-title">7secs Soundboard</h1>
-                <p class="onboarding-subtitle">
-                  Willkommen! Gib deine 3-stellige Mannschafts-ID ein (z. B. <strong>#H4R</strong>), um deinen Spieltagskader und Torsongs zu laden.
-                </p>
-
-                <div class="team-input-group">
-                  <span class="team-input-prefix">#</span>
-                  <input
-                    type="text"
-                    v-model="newTeamIdInput"
-                    placeholder="H4R"
-                    maxlength="5"
-                    class="team-id-input"
-                    @keyup.enter="handleAddTeam"
-                    autocapitalize="characters"
-                  />
-                </div>
-
-                <div v-if="addTeamError" class="alert-box alert-danger">
-                  <i class="material-icons">error_outline</i>
-                  <span>{{ addTeamError }}</span>
-                </div>
-
-                <button
-                  class="btn-primary btn-large btn-block"
-                  :disabled="addTeamLoading || !newTeamIdInput.trim()"
-                  @click="handleAddTeam"
-                >
-                  <span v-if="!addTeamLoading">Mannschaft hinzufügen</span>
-                  <span v-else class="btn-loading">
-                    <span class="spinner"></span> Lädt Kader...
-                  </span>
-                </button>
-
-                <div class="onboarding-info">
-                  <i class="material-icons">info</i>
-                  <span>Du kannst später in der Verwaltung bis zu 3 Mannschaften anlegen.</span>
-                </div>
-              </div>
+            <div class="team-input-group">
+              <span class="team-input-prefix">#</span>
+              <input
+                type="text"
+                v-model="newTeamIdInput"
+                placeholder="H4R"
+                maxlength="5"
+                class="team-id-input"
+                @keyup.enter="handleAddTeam"
+                autocapitalize="characters"
+              />
             </div>
-          </f7-tab>
 
-          <!-- DYNAMIC TEAM TABS (1, 2 or 3 teams) -->
-          <f7-tab
-            v-for="(team, index) in teams"
-            :key="team.id"
-            :id="`tab-team-${index}`"
-            class="page-content tab-content-padded"
-            :tab-active="activeTab === `tab-team-${index}`"
-          >
+            <div v-if="addTeamError" class="alert-box alert-danger">
+              <i class="material-icons">error_outline</i>
+              <span>{{ addTeamError }}</span>
+            </div>
+
+            <button
+              class="btn-primary btn-large btn-block"
+              :disabled="addTeamLoading || !newTeamIdInput.trim()"
+              @click="handleAddTeam"
+            >
+              <span v-if="!addTeamLoading">Mannschaft hinzufügen</span>
+              <span v-else class="btn-loading">
+                <span class="spinner"></span> Lädt Kader...
+              </span>
+            </button>
+
+            <div class="onboarding-info">
+              <i class="material-icons">info</i>
+              <span>Du kannst später in der Verwaltung bis zu 3 Mannschaften anlegen.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DYNAMIC TEAM TABS (1, 2 or 3 teams) -->
+      <div
+        v-for="(team, index) in teams"
+        :key="team.id"
+        :id="`tab-team-${index}`"
+        class="tab-pane"
+        v-show="activeTab === `tab-team-${index}`"
+      >
             <!-- Team Sub-Header Info Banner (Ultra-Compact Bar) -->
             <div class="team-header-bar">
               <div class="team-header-left">
@@ -205,13 +201,13 @@
                 <i class="material-icons">refresh</i> Jetzt synchronisieren
               </button>
             </div>
-          </f7-tab>
+          </div>
 
           <!-- MANAGE / UPDATES / SETTINGS TAB -->
-          <f7-tab
+          <div
             id="tab-manage"
-            class="page-content tab-content-padded"
-            :tab-active="activeTab === 'tab-manage'"
+            class="tab-pane"
+            v-show="activeTab === 'tab-manage'"
           >
             <div class="settings-container">
               <!-- TEAMS OVERVIEW SECTION -->
@@ -392,91 +388,89 @@
                 </div>
               </div>
             </div>
-          </f7-tab>
-        </f7-tabs>
-
-        <!-- STICKY BOTTOM PLAYER (Appears when sound is playing) -->
-        <div v-if="playingSpieler" class="sticky-player-bar">
-          <div class="sticky-progress-track">
-            <div
-              class="sticky-progress-fill"
-              :style="{ width: playingProgressPercent + '%' }"
-            ></div>
           </div>
+        </main>
 
-          <div class="sticky-player-content">
-            <div class="sticky-player-left">
-              <i class="material-icons playing-icon">music_note</i>
-              <div class="sticky-player-meta">
-                <div class="sticky-player-name">{{ playingSpieler.anzeigename }}</div>
-                <div class="sticky-player-sub">Torjubel läuft · {{ playingSpieler.mannschaftId }}</div>
-              </div>
-            </div>
-
-            <div class="sticky-player-right">
-              <div class="sticky-time-pill">{{ playingSecondsRemaining.toFixed(1) }}s</div>
-              <button class="sticky-stop-btn" @click="stopSound()">
-                <i class="material-icons">stop</i>
-                <span>STOPP</span>
-              </button>
-            </div>
-          </div>
+      <!-- STICKY BOTTOM PLAYER (Appears when sound is playing) -->
+      <div v-if="playingSpieler" class="sticky-player-bar">
+        <div class="sticky-progress-track">
+          <div
+            class="sticky-progress-fill"
+            :style="{ width: playingProgressPercent + '%' }"
+          ></div>
         </div>
 
-        <!-- ADD TEAM MODAL DIALOG -->
-        <div v-if="showAddTeamModal" class="custom-modal-backdrop" @click.self="closeAddTeamModal">
-          <div class="custom-modal-card">
-            <div class="modal-header">
-              <h3 class="modal-title">Mannschaft hinzufügen</h3>
-              <button class="btn-icon-dark" @click="closeAddTeamModal" aria-label="Schließen">
-                <i class="material-icons">close</i>
-              </button>
-            </div>
-
-            <div class="modal-body">
-              <p class="modal-instruction">
-                Gib die 3-stellige Mannschafts-ID ein (z. B. <strong>#H4R</strong> oder <strong>H4R</strong>).
-              </p>
-
-              <div class="team-input-group">
-                <span class="team-input-prefix">#</span>
-                <input
-                  type="text"
-                  v-model="newTeamIdInput"
-                  placeholder="H4R"
-                  maxlength="5"
-                  class="team-id-input"
-                  @keyup.enter="handleAddTeam"
-                  autocapitalize="characters"
-                  autofocus
-                />
-              </div>
-
-              <div v-if="addTeamError" class="alert-box alert-danger">
-                <i class="material-icons">error_outline</i>
-                <span>{{ addTeamError }}</span>
-              </div>
-            </div>
-
-            <div class="modal-footer">
-              <button class="btn-secondary" @click="closeAddTeamModal">Abbrechen</button>
-              <button
-                class="btn-primary"
-                :disabled="addTeamLoading || !newTeamIdInput.trim()"
-                @click="handleAddTeam"
-              >
-                <span v-if="!addTeamLoading">Hinzufügen</span>
-                <span v-else class="btn-loading">
-                  <span class="spinner"></span> Lädt...
-                </span>
-              </button>
+        <div class="sticky-player-content">
+          <div class="sticky-player-left">
+            <i class="material-icons playing-icon">music_note</i>
+            <div class="sticky-player-meta">
+              <div class="sticky-player-name">{{ playingSpieler.anzeigename }}</div>
+              <div class="sticky-player-sub">Torjubel läuft · {{ playingSpieler.mannschaftId }}</div>
             </div>
           </div>
+
+          <div class="sticky-player-right">
+            <div class="sticky-time-pill">{{ playingSecondsRemaining.toFixed(1) }}s</div>
+            <button class="sticky-stop-btn" @click="stopSound()">
+              <i class="material-icons">stop</i>
+              <span>STOPP</span>
+            </button>
+          </div>
         </div>
-      </f7-page>
-    </f7-view>
-  </f7-app>
-</template>
+      </div>
+
+      <!-- ADD TEAM MODAL DIALOG -->
+      <div v-if="showAddTeamModal" class="custom-modal-backdrop" @click.self="closeAddTeamModal">
+        <div class="custom-modal-card">
+          <div class="modal-header">
+            <h3 class="modal-title">Mannschaft hinzufügen</h3>
+            <button class="btn-icon-dark" @click="closeAddTeamModal" aria-label="Schließen">
+              <i class="material-icons">close</i>
+            </button>
+          </div>
+
+          <div class="modal-body">
+            <p class="modal-instruction">
+              Gib die 3-stellige Mannschafts-ID ein (z. B. <strong>#H4R</strong> oder <strong>H4R</strong>).
+            </p>
+
+            <div class="team-input-group">
+              <span class="team-input-prefix">#</span>
+              <input
+                type="text"
+                v-model="newTeamIdInput"
+                placeholder="H4R"
+                maxlength="5"
+                class="team-id-input"
+                @keyup.enter="handleAddTeam"
+                autocapitalize="characters"
+                autofocus
+              />
+            </div>
+
+            <div v-if="addTeamError" class="alert-box alert-danger">
+              <i class="material-icons">error_outline</i>
+              <span>{{ addTeamError }}</span>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn-secondary" @click="closeAddTeamModal">Abbrechen</button>
+            <button
+              class="btn-primary"
+              :disabled="addTeamLoading || !newTeamIdInput.trim()"
+              @click="handleAddTeam"
+            >
+              <span v-if="!addTeamLoading">Hinzufügen</span>
+              <span v-else class="btn-loading">
+                <span class="spinner"></span> Lädt...
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
 
 <script>
 import axios from "axios";
@@ -1302,41 +1296,60 @@ body, html, #app {
 }
 
 /* ==========================================================================
-   NAVBAR & HEADER (APP_DESIGN_SYSTEM.md Specification)
+   ROOT LAYOUT & APP CONTAINER
    ========================================================================== */
-.statusbar {
-  display: none !important;
+.app-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  width: 100vw;
+  overflow: hidden;
+  position: relative;
+  background-color: var(--color-bg);
 }
 
 .app-navbar {
-  display: block !important;
-  background-color: var(--color-surface) !important;
-  color: var(--color-text-primary) !important;
-  border-bottom: 1.5px solid var(--color-border) !important;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04) !important;
-  height: calc(56px + env(safe-area-inset-top, 0px)) !important;
-  min-height: 56px !important;
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  width: 100% !important;
-  z-index: 9999 !important;
-  box-sizing: border-box !important;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 56px;
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+  border-bottom: 1.5px solid var(--color-border);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+  z-index: 600;
+  box-sizing: border-box;
 }
 
 .navbar-inner-custom {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  width: 100% !important;
-  padding-top: env(safe-area-inset-top, 0px) !important;
-  padding-left: 16px !important;
-  padding-right: 16px !important;
-  padding-bottom: 0 !important;
-  height: 100% !important;
-  min-height: 56px !important;
-  box-sizing: border-box !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 100%;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.app-main-content {
+  position: fixed;
+  top: 56px;
+  bottom: 58px;
+  left: 0;
+  right: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 8px;
+  box-sizing: border-box;
+  background-color: var(--color-bg);
+}
+
+.tab-pane {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .navbar-brand-section {
@@ -1553,22 +1566,44 @@ body, html, #app {
    TOOLBAR & TABS (BOTTOM TABBAR)
    ========================================================================== */
 .app-toolbar {
-  background: #FFFFFF !important;
-  border-top: 1.5px solid var(--color-border) !important;
-  height: calc(58px + env(safe-area-inset-bottom, 0px)) !important;
-  padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 58px;
+  background: #FFFFFF;
+  border-top: 1.5px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  z-index: 600;
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
+  box-sizing: border-box;
 }
 
 .toolbar-tab-link {
-  color: var(--color-text-muted) !important;
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  color: var(--color-text-muted);
+  font-family: inherit;
   font-weight: 600;
-  font-size: 11px !important;
+  font-size: 11px;
+  cursor: pointer;
+  outline: none;
   transition: color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .toolbar-tab-link.tab-link-active {
-  color: var(--color-brand) !important;
+  color: var(--color-brand);
 }
 
 .toolbar-tab-link i.material-icons {
@@ -1609,26 +1644,6 @@ body, html, #app {
     transform: scale(1);
     box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.4);
   }
-}
-
-.tab-badge {
-  position: absolute;
-  top: -4px;
-  right: -8px;
-  background: var(--color-danger);
-  color: #FFFFFF;
-  font-size: 10px;
-  font-weight: 800;
-  padding: 1px 5px;
-  border-radius: var(--radius-full);
-}
-
-.tab-content-padded {
-  padding-top: calc(56px + env(safe-area-inset-top, 0px) + 8px) !important;
-  padding-bottom: calc(58px + env(safe-area-inset-bottom, 0px) + 8px) !important;
-  padding-left: calc(8px + env(safe-area-inset-left, 0px)) !important;
-  padding-right: calc(8px + env(safe-area-inset-right, 0px)) !important;
-  box-sizing: border-box;
 }
 
 /* ==========================================================================
