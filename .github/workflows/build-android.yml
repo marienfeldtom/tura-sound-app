@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      CORDOVA_ANDROID_GRADLE_DISTRIBUTION_URL: 'https://services.gradle.org/distributions/gradle-8.7-bin.zip'
+      CORDOVA_ANDROID_GRADLE_DISTRIBUTION_URL: 'https://services.gradle.org/distributions/gradle-8.11.1-bin.zip'
       KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
       KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
       KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
@@ -39,10 +39,10 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Gradle 8.7
+      - name: Setup Gradle 8.11.1
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.7'
+          gradle-version: '8.11.1'
 
       - name: Configure Gradle Maven Mirrors
         run: |
