@@ -67,6 +67,7 @@ jobs:
           npm install
           cordova platform remove android --nosave || true
           cordova platform add android@12.0.1 --save
+          echo "android.aapt2Version=8.6.1-11315950" >> platforms/android/gradle.properties
           cordova build android --debug
 
       - name: Build Android Release Bundle (.aab)
@@ -87,6 +88,7 @@ jobs:
             }
           }
           EOF
+          echo "android.aapt2Version=8.6.1-11315950" >> platforms/android/gradle.properties
           cordova build android --release -- --packageType=bundle
 
       - name: Upload Debug APK Artifact
