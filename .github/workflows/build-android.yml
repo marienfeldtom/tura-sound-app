@@ -59,15 +59,14 @@ jobs:
         run: npm run build -- --outDir src-cordova/www
 
       - name: Install Cordova CLI
-        run: npm install -g cordova@12.0.0
+        run: npm install -g cordova
 
       - name: Build Android Debug APK
         working-directory: src-cordova
         run: |
           npm install
           cordova platform remove android --nosave || true
-          cordova platform add android@12.0.1 --save
-          echo "android.aapt2Version=8.6.1-11315950" >> platforms/android/gradle.properties
+          cordova platform add android@latest --save
           cordova build android --debug
 
       - name: Build Android Release Bundle (.aab)
@@ -88,7 +87,6 @@ jobs:
             }
           }
           EOF
-          echo "android.aapt2Version=8.6.1-11315950" >> platforms/android/gradle.properties
           cordova build android --release -- --packageType=bundle
 
       - name: Upload Debug APK Artifact
