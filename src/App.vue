@@ -875,7 +875,10 @@ export default {
     },
 
     playCordovaAudio(spieler, fallbackUrl) {
-      const localFilePath = cordova.file.dataDirectory + spieler.username + ".mp3";
+      // Only use local file if the song was actually downloaded, otherwise stream
+      const localFilePath = spieler.isDownloaded
+        ? cordova.file.dataDirectory + spieler.username + ".mp3"
+        : null;
       const audioSource = localFilePath || fallbackUrl;
 
       try {
@@ -962,7 +965,6 @@ export default {
 
     startPlaybackProgressTimer() {
       const INTERVAL_MS = 50;
-      const startTime = Date.now();
 
       this.audioProgressTimer = setInterval(() => {
         if (!this.playingSpieler) {
@@ -979,11 +981,8 @@ export default {
             const remaining = Math.max(0, audio.duration - audio.currentTime);
             this.playingSecondsRemaining = remaining;
             this.playingProgressPercent = Math.max(0, Math.min(100, (remaining / audio.duration) * 100));
-          } else {
-            const elapsed = (Date.now() - startTime) / 1000;
-            this.playingSecondsRemaining = elapsed;
-            this.playingProgressPercent = 100;
           }
+          // else: metadata not yet available – wait silently, don't count upward
           return;
         }
 
@@ -998,16 +997,12 @@ export default {
 
             media.getCurrentPosition((pos) => {
               if (this.currentMedia !== media) return;
-              if (pos >= 0) {
-                if (this.playingDuration > 0) {
-                  const remaining = Math.max(0, this.playingDuration - pos);
-                  this.playingSecondsRemaining = remaining;
-                  this.playingProgressPercent = Math.max(0, Math.min(100, (remaining / this.playingDuration) * 100));
-                } else {
-                  this.playingSecondsRemaining = pos;
-                  this.playingProgressPercent = 100;
-                }
+              if (pos >= 0 && this.playingDuration > 0) {
+                const remaining = Math.max(0, this.playingDuration - pos);
+                this.playingSecondsRemaining = remaining;
+                this.playingProgressPercent = Math.max(0, Math.min(100, (remaining / this.playingDuration) * 100));
               }
+              // else: duration not yet known – wait silently, don't count upward
             }, (err) => {
               console.warn("Error getting Cordova media position:", err);
             });
@@ -1017,9 +1012,7 @@ export default {
           return;
         }
 
-        // Fallback before audio is ready
-        const elapsed = (Date.now() - startTime) / 1000;
-        this.playingSecondsRemaining = elapsed;
+        // Neither audio source ready yet – wait silently
       }, INTERVAL_MS);
     },
 
@@ -1571,7 +1564,8 @@ body, html, #app {
   left: 0;
   right: 0;
   width: 100%;
-  height: 58px;
+  /* Grow to cover the system navigation area (Android nav bar / gesture inset) */
+  height: calc(58px + env(safe-area-inset-bottom, 0px));
   background: #FFFFFF;
   border-top: 1.5px solid var(--color-border);
   display: flex;
@@ -1580,6 +1574,8 @@ body, html, #app {
   z-index: 600;
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
   box-sizing: border-box;
+  /* Push tab icons up so they stay centered in the visible 58px area */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .toolbar-tab-link {
